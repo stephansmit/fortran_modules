@@ -12,4 +12,4 @@ test.o: test.f90
 main.o: main.f90
 	gfortran -c main.f90
 clean:
-	rm *.o run
+	rm *.o *.mod run
