@@ -1,5 +1,5 @@
 program modular
-  use Test
+  use models
   ! use TurbModels
   ! use TurbModels_SST
   ! use TurbModels_MK
@@ -14,11 +14,12 @@ program modular
   !type(MKTurbModel), allocatable :: m
   integer model
   model = 2
-  call init(model)
+  call initEOSModel(model)
 
 
 
 
-  write(*,*) m%value()
+
+  write(*,*) eosm%A
 
 end program
