@@ -1,8 +1,10 @@
-execname: eosmodels.o models.o turbmodels_mk.o turbmodels_sst.o turbmodels.o test.o main.o
-	gfortran -o run eosmodels.o models.o turbmodels_mk.o turbmodels_sst.o turbmodels.o  test.o main.o
+execname: math.o eosmodels.o models.o turbmodels_mk.o turbmodels_sst.o turbmodels.o test.o main.o
+	gfortran -o run math.o eosmodels.o models.o turbmodels_mk.o turbmodels_sst.o turbmodels.o  test.o main.o
 
 
 
+math.o: math.f90
+	gfortran -c math.f90	
 eosmodels.o: eosmodels.f90
 	gfortran -c eosmodels.f90	
 models.o: models.f90
