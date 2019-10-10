@@ -148,7 +148,6 @@ contains
              this%lamocp2Tab(1:this%nTab))
   end subroutine allocate_mem
 
-
   subroutine read_table(this)
     implicit none
     class(Table_EOSModel) :: this
@@ -161,7 +160,6 @@ contains
     enddo
     close(27)
   end subroutine read_table
-
 
   subroutine calc_interp_coeff(this)
     use mod_math
@@ -176,4 +174,5 @@ contains
     call spline(this%enthTab,this%tempTab,  this%nTab,this%temp2Tab)
     call spline(this%enthTab,this%betaTab,  this%nTab,this%beta2Tab)
   end subroutine calc_interp_coeff
+
 end module mod_eosmodels
