@@ -18,12 +18,12 @@ module mod_eosmodels
       import :: EOSModel
       class(EOSModel) :: this
     end subroutine init
-    subroutine set( this, enth, prop, out )
+    subroutine set( this, enth, prop, output )
       import :: EOSModel
       class(EOSModel) :: this
       real(8), intent(IN) :: enth
       character(len=1), intent(IN) :: prop
-      real(8), intent(OUT) :: out
+      real(8), intent(OUT) :: output
     end subroutine set
   end interface
 
@@ -71,28 +71,27 @@ contains
     class(IG_EOSModel) :: this
   end subroutine initialize_ig
 
-  subroutine set_w_ig(this, enth, prop, out)
+  subroutine set_w_ig(this, enth, prop, output)
     implicit none
     class(IG_EOSModel) :: this
     real(8), intent(IN) :: enth
     character(len=1), intent(IN) :: prop
-    real(8), intent(OUT) :: out
-
+    real(8), intent(OUT) :: output
     select case (prop)
       case ("T")
-        out = enth + 1.0
+        output = enth + 1.0
       case ("D")
-        out = 1/(enth+1)
+        output = 1/(enth+1)
       case ("L")
-        out = 1./(this%Re*this%Pr)
+        output = 1./(this%Re*this%Pr)
       case ("C")
-        out = 1.
+        output = 1.
       case ("V")
-        out = 1./this%Re
+        output = 1./this%Re
       case ("B")
-        out = 1./(enth+1)
+        output = 1./(enth+1)
       case default
-        out = 1
+        write(*,*) "Property doesn't exist!!!"
     end select
   end subroutine set_w_ig
 
@@ -110,38 +109,37 @@ contains
     call this%calc_interp_coeff()
   end subroutine initialize_table
 
-  subroutine set_w_table(this, enth, prop, out)
+  subroutine set_w_table(this, enth, prop, output)
     use mod_math
     implicit none
     class(Table_EOSModel) :: this
     real(8), intent(IN) :: enth
     character(len=1), intent(IN) :: prop
-    real(8), intent(OUT):: out
+    real(8), intent(OUT):: output
     integer :: tabkhi,tabklo = 0 
     select case (prop)
       case ("T")
-        call splint(this%enthTab,this%tempTab,  this%temp2Tab,  this%nTab,enth,out,tabkhi,tabklo)
+        call splint(this%enthTab,this%tempTab,  this%temp2Tab,  this%nTab,enth,output,tabkhi,tabklo)
       case ("D")
-        call splint(this%enthTab,this%rhoTab,   this%rho2Tab,   this%nTab,enth,out,tabkhi,tabklo)
+        call splint(this%enthTab,this%rhoTab,   this%rho2Tab,   this%nTab,enth,output,tabkhi,tabklo)
       case ("L")
-        call splint(this%enthTab,this%lamocpTab,this%lamocp2Tab,this%nTab,enth,out,tabkhi,tabklo)
-        out = out/(this%Re*this%Pr)
+        call splint(this%enthTab,this%lamocpTab,this%lamocp2Tab,this%nTab,enth,output,tabkhi,tabklo)
+        output = output/(this%Re*this%Pr)
       case ("C")
-        call splint(this%enthTab,this%cpTab,    this%cp2Tab,    this%nTab,enth,out,tabkhi,tabklo)
+        call splint(this%enthTab,this%cpTab,    this%cp2Tab,    this%nTab,enth,output,tabkhi,tabklo)
       case ("V")
-        call splint(this%enthTab,this%muTab,    this%mu2Tab,    this%nTab,enth,out,tabkhi,tabklo)
-        out = out/this%Re
+        call splint(this%enthTab,this%muTab,    this%mu2Tab,    this%nTab,enth,output,tabkhi,tabklo)
+        output = output/this%Re
       case ("B")
-        call splint(this%enthTab,this%betaTab,  this%beta2Tab,  this%nTab,enth,out,tabkhi,tabklo)
+        call splint(this%enthTab,this%betaTab,  this%beta2Tab,  this%nTab,enth,output,tabkhi,tabklo)
       case default
-        out = 1
+        write(*,*) "Property doesn't exist!!!"
     end select
   end subroutine set_w_table
 
   subroutine allocate_mem(this) 
     implicit none
     class(Table_EOSModel) :: this
-
     allocate(this%tempTab(1:this%nTab),this%rhoTab(1:this%nTab),   this%betaTab(1:this%nTab),  &
              this%muTab(1:this%nTab),  this%lamTab(1:this%nTab),   this%cpTab(1:this%nTab),    &
              this%enthTab(1:this%nTab),this%lamocpTab(1:this%nTab),this%temp2Tab(1:this%nTab), &
@@ -155,11 +153,10 @@ contains
     implicit none
     class(Table_EOSModel) :: this
     integer i, ierr
-
     open(27,file=this%filename)
     do i=1,this%nTab
-      read (27,*) this%tempTab(i),this%rhoTab(i),this%muTab(i),this%lamTab(i), &
-                  this%cpTab(i),this%enthTab(i),this%betaTab(i)
+      read (27,*) this%tempTab(i),this%rhoTab(i), this%muTab(i),this%lamTab(i), &
+                  this%cpTab(i),  this%enthTab(i),this%betaTab(i)
       this%lamocpTab(i) = this%lamTab(i)/this%cpTab(i)
     enddo
     close(27)
@@ -170,7 +167,6 @@ contains
     use mod_math
     implicit none
     class(Table_EOSModel) :: this
-
     call spline(this%tempTab,this%enthTab,  this%nTab,this%enth2Tab)
     call spline(this%enthTab,this%rhoTab,   this%nTab,this%rho2Tab)
     call spline(this%enthTab,this%muTab,    this%nTab,this%mu2Tab)
