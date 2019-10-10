@@ -1,39 +1,45 @@
 program modular
+
   use mod_eosmodels
-  use mod_eosmodels_ig
-  use mod_eosmodels_table
-
-
   implicit none
 
+  include 'mpif.h'
 
+
+  integer      ploc,ierr,istart,noutput, rank
+  real*8       bulk,stress,stime,time1,time2,timer,time3,dif,adv
+
+
+  real(8) value
+  real(8) Re, Pr
   class(EOSModel), pointer :: test1
   class(EOSModel), pointer :: test2
 
 
-  allocate(test1, source=IG_EOSModel())
-  allocate(test2, source=Table_EOSModel(1,"test"))
+  call cpu_time(time1)
+  call mpi_init(ierr)
+  call mpi_comm_rank(MPI_COMM_WORLD,rank,ierr)
+  call mpi_comm_size(MPI_COMM_WORLD,ploc,ierr)
+
+  Re = 200
+  Pr = 200
+  
+
+  allocate(test1, source=IG_EOSModel(Re,Pr))
+  allocate(test2, source=Table_EOSModel(Re,Pr,2000,"co2h_table.dat"))
 
   call test1%init()
   call test2%init()
   
-  write(*,*) test1%getfield(2.)
-  write(*,*) test2%getfield(2.)
+  value = 0.01
+  call test1%set(value,'L', value)
+  write(*,*) value
+  value = 0.01
   
-  ! allocate(test,source=TBaseClass())
+  call test2%set(value,'L', value)
+  write(*,*) value
 
-  ! write(*,*) test%ntab
-  ! allocate(test,source=TDerivedClass(1,'test'))
-
-  ! write(*,*) test%filename
-  !test%ntab = 2000
-
-  ! call test%init()
-
-  ! write(*,*) tes
-  ! call testbase(test)
-  
-  ! write(*,*) test%get_in1()
+  call mpi_finalize(ierr)
 
 end program
 
