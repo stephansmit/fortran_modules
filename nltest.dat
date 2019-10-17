@@ -1,0 +1,5 @@
+&QT
+ ASCALAR=  3.14159274    ,
+ IARR=        -17,        144,          0,
+ LABEL="Hello world",
+ /
