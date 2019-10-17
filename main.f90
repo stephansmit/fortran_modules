@@ -1,28 +1,17 @@
 program modular
-  use mod_classes
-  implicit none
-  include 'mpif.h'
-  integer ploc,ierr, rank
-  real(8) Re, Pr, output_ig,output_table, value
-  class(BaseClass), allocatable :: eosmodel_ig
-  
-  call mpi_init(ierr)
-  call mpi_comm_rank(MPI_COMM_WORLD,rank,ierr)
-  call mpi_comm_size(MPI_COMM_WORLD,ploc,ierr)
 
-  Re = 200
-  Pr = 200
-  ! value = 0.01  
 
-  allocate(eosmodel_ig,    source=init_Implemented(Re,Pr))
-  ! allocate(eosmodel_table, source=Table_EOSModel(Re,Pr,2000,"co2h_table.dat"))
+  real(8), dimension(0:100) :: a1,b1,c1
 
-  call eosmodel_ig%init()
-  
-  call eosmodel_ig%   set('L', output_ig)
-  
-  write(*,*) output_ig
+  a1=1;b1=0;c1=2;
+  open( 29, file = 'somedata.csv' )
+  write(29, '(1a20)' ) 'Station', 'Mean salinity', 'Mean temperature'
+  do i=0,100
+    write(29, '(E20.6,E20.6,E20.6)' ) a1(i),b1(i),c1(i)
+  enddo
 
-  call mpi_finalize(ierr)
+
+  close(29)
+
 
 end program
