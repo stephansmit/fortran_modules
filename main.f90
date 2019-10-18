@@ -134,36 +134,36 @@ subroutine write_mpiio_formatted(filename, var1, var2, var3, i1, k1,rank,px)
   integer,                       intent(IN) :: i1,k1,rank,px
   integer nvar
   integer(kind=MPI_OFFSET_KIND) disp 
-  character(len=61), dimension(:), allocatable :: lines, lines2
+  character(len=61), dimension(:), allocatable :: lines
   nvar = 3
   index=0
-
+  ! first core write from 0 to kmax
   if (myrank .eq. 0) then
     k_min = 0
     k_max = k1-1
     allocate(lines(0:(i1+1)*(k1)))
+    size =           (i1+1)*(k1)*(nvar*20+1) 
     disp = 0
-    size = (i1+1)*(k1)*(nvar*20+1) 
+    !write header
     write(test,'(3(A20))') 'var1', 'var2', 'var3'
     write(line, '(A)') test // NEW_LINE("A")
     lines(index) = line
     index = index+1
-
+  ! last core write from 1 to k1
   else if (myrank .eq. px-1) then
     k_min = 1
     k_max = k1
     allocate(lines(0:(i1+1)*(k1)-1))
-    disp = ((i1+1)*k1+1)*(nvar*20+1) + (myrank-1)*(i1+1)*(k1-1)*(nvar*20+1)
-    size = (i1+1)*(k1)*(nvar*20+1)
+    size =           (i1+1)*(k1)*(nvar*20+1)
+    disp = ((i1+1)*k1+1)*(nvar*20+1)+(myrank-1)*(i1+1)*(k1-1)*(nvar*20+1)
+  ! other cores write from 1 to kmax
   else
     k_min = 1
     k_max = k1-1
     allocate(lines(0:(i1+1)*(k1-1)-1))
-    disp = ((i1+1)*k1+1)*(nvar*20+1) + (myrank-1)*(i1+1)*(k1-1)*(nvar*20+1)
-    size = (i1+1)*(k_max)*(nvar*20+1)
+    size =           (i1+1)*(k1-1)*(nvar*20+1)
+    disp = ((i1+1)*k1+1)*(nvar*20+1)+(myrank-1)*(i1+1)*(k1-1)*(nvar*20+1)
   endif
-
-
   do i = 0,i1
     do j = k_min,k_max
       write(test,'(3(E20.12))') var1(i,j), var2(i,j), var3(i,j)
@@ -172,7 +172,6 @@ subroutine write_mpiio_formatted(filename, var1, var2, var3, i1, k1,rank,px)
       index=index+1
     enddo
   enddo
-
   call MPI_FILE_OPEN(MPI_COMM_WORLD, filename,MPI_MODE_WRONLY + MPI_MODE_CREATE,MPI_INFO_NULL, fh, ierr) 
   call MPI_FILE_SET_VIEW(fh, disp, MPI_CHAR, MPI_CHAR, 'native', MPI_INFO_NULL, ierr) 
   call MPI_FILE_WRITE(fh, lines, size, MPI_CHAR,MPI_STATUS_IGNORE, ierr) 
