@@ -19,7 +19,7 @@ character(len=61) :: line
 character(len=60) test 
 
 i1=2
-k1=5
+k1=4
 allocate(var1(0:i1,0:k1),var2(0:i1,0:k1),var3(0:i1,0:k1))
 allocate(nvar1(0:i1,0:k1),nvar2(0:i1,0:k1),nvar3(0:i1,0:k1))
 
@@ -34,94 +34,14 @@ call mpi_comm_size(MPI_COMM_WORLD,px,ierr)
 
 do i = 0,i1
   do j = 0,k1
-    var1(i,j) = i
-    var2(i,j) = j
+    var1(i,j) = myrank
+    var2(i,j) = myrank
     var3(i,j) = myrank
   enddo 
 enddo
 
-! allocate(lines(0:(i1+1)*(k1+1)-1))
-
-
-! allocate(lines2(0:(i1+1)*(k1)-1))
-
-
-! index=0
-! do i = 0,i1
-!   do j = 0,k1
-!     write(test,'(3(E20.12))') var1(i,j), var2(i,j), var3(i,j)
-!     write(line, '(A)') test // NEW_LINE("A")
-!     lines(index) = line
-!     index=index+1
-!   enddo
-! enddo
-! !rank 0 write
-
-! ! write(*,*) lines(2)
-! disp = myrank * (1+k1)*(1+i1)*61
-
-! ! write(*,*) lines((i1+1)*(k1+1)-1)
-! call MPI_FILE_OPEN(MPI_COMM_WORLD, 'testfile',MPI_MODE_WRONLY + MPI_MODE_CREATE,MPI_INFO_NULL, fh, ierr) 
-! call MPI_FILE_SET_VIEW(fh, disp, MPI_CHAR, MPI_CHAR, 'native', MPI_INFO_NULL, ierr) 
-! call MPI_FILE_WRITE(fh, lines, (1+k1)*(1+i1)*61, MPI_CHAR,MPI_STATUS_IGNORE, ierr) 
-! call MPI_FILE_CLOSE(fh, ierr) 
-
-  ! test= 'test'
-
-!allocate(lines2(0:(i1+1)*(k1-1)-1))
-
-
-
-
-
-
-
-
-! write(*,*) lines(2)
-! disp = myrank * (1+k1)*(1+i1)*61
-
-! write(*,*) lines((i1+1)*(k1+1)-1)
-
-
-! if (myrank .eq. 0) then
-!   open(29,file='test',form='formatted')
-!   do i=0,(i1+1)*(k1+1)-1
-!     write(29,"(A)",advance="no") lines(i)
-!   enddo
-! endif
-
-
 call write_mpiio_formatted("testfile.dat",var1,var2,var3,i1,k1,myrank,px)
-! call read_mpiio("testfile.dat", nvar1,nvar2,nvar3,i1,k1,myrank)
 
-! allvars(:,:,1)=var1
-! allvars(:,:,2)=var2
-! allvars(:,:,3)=var3
-
-
-! write(*,*) var1(i,jk)
-! disp = myrank * (1+k1)*(1+i1)*8*3
-
-! if (myrank.eq.0)  write(*,*) allvars(:,:,3)
-
-! ! write(*,*) tmpbuf
-
-
-
-! call MPI_FILE_CLOSE(thefile, ierr) 
-
-
-! !read
-! call  MPI_FILE_OPEN(MPI_COMM_WORLD, 'testfile',MPI_MODE_RDONLY,  MPI_INFO_NULL,  fh, ierr) 
-! call  MPI_FILE_READ_AT(fh,  disp, allvars,  k1*i1*3*2, MPI_REAL,  status, ierr) 
-! call  MPI_FILE_CLOSE(fh,  ierr) 
-
-! ! buf2 = reshape(tmpbuf, (/i1, k1/))
-! nvar1 = allvars(:,:,1)
-! nvar2 = allvars(:,:,2)
-! nvar3 = allvars(:,:,3)
-
-! write(*,*) myrank, var1(1,1), nvar1(2,1)
 call MPI_FINALIZE(ierr) 
 
 contains
@@ -134,35 +54,35 @@ subroutine write_mpiio_formatted(filename, var1, var2, var3, i1, k1,rank,px)
   integer,                       intent(IN) :: i1,k1,rank,px
   integer nvar
   integer(kind=MPI_OFFSET_KIND) disp 
-  character(len=61), dimension(:), allocatable :: lines
+  character(len=61), dimension(:), allocatable :: lines, lines2
   nvar = 3
-  index=0
-  ! first core write from 0 to kmax
+  index=1
+
+  !first core write from 0 to k1-1
   if (myrank .eq. 0) then
     k_min = 0
     k_max = k1-1
-    allocate(lines(0:(i1+1)*(k1)))
-    size =           (i1+1)*(k1)*(nvar*20+1) 
+    allocate(lines(1:(i1+1)*k1+1)) !+1 for header
     disp = 0
-    !write header
-    write(test,'(3(A20))') 'var1', 'var2', 'var3'
+    size = ((i1+1)*(k1)+1)*(nvar*20+1)
+    write(test,'(3(A20))') 'var1', 'var2', 'var3' !write the header
     write(line, '(A)') test // NEW_LINE("A")
     lines(index) = line
     index = index+1
-  ! last core write from 1 to k1
+  !last core write from 1 to k1
   else if (myrank .eq. px-1) then
     k_min = 1
     k_max = k1
-    allocate(lines(0:(i1+1)*(k1)-1))
+    allocate(lines(1:(i1+1)*k1))
     size =           (i1+1)*(k1)*(nvar*20+1)
-    disp = ((i1+1)*k1+1)*(nvar*20+1)+(myrank-1)*(i1+1)*(k1-1)*(nvar*20+1)
-  ! other cores write from 1 to kmax
+   disp = ((i1+1)*(k1)+1)*(nvar*20+1) + (myrank-1)*(i1+1)*(k1-1)*(nvar*20+1)
+  !other core write from 1 to k1-1
   else
     k_min = 1
     k_max = k1-1
-    allocate(lines(0:(i1+1)*(k1-1)-1))
+    allocate(lines(1:(i1+1)*(k1-1)))
     size =           (i1+1)*(k1-1)*(nvar*20+1)
-    disp = ((i1+1)*k1+1)*(nvar*20+1)+(myrank-1)*(i1+1)*(k1-1)*(nvar*20+1)
+    disp = ((i1+1)*(k1)+1)*(nvar*20+1) + (myrank-1)*(i1+1)*(k1-1)*(nvar*20+1)
   endif
   do i = 0,i1
     do j = k_min,k_max
@@ -172,6 +92,7 @@ subroutine write_mpiio_formatted(filename, var1, var2, var3, i1, k1,rank,px)
       index=index+1
     enddo
   enddo
+
   call MPI_FILE_OPEN(MPI_COMM_WORLD, filename,MPI_MODE_WRONLY + MPI_MODE_CREATE,MPI_INFO_NULL, fh, ierr) 
   call MPI_FILE_SET_VIEW(fh, disp, MPI_CHAR, MPI_CHAR, 'native', MPI_INFO_NULL, ierr) 
   call MPI_FILE_WRITE(fh, lines, size, MPI_CHAR,MPI_STATUS_IGNORE, ierr) 
