@@ -42,9 +42,72 @@ enddo
 
 call write_mpiio_formatted("testfile.dat",var1,var2,var3,i1,k1,myrank,px)
 
+call read_mpiio_formatted("testfile.dat",var1,var2,var3,i1,k1,myrank,px)
 call MPI_FINALIZE(ierr) 
 
 contains
+
+subroutine read_mpiio_formatted(filename, var1, var2, var3, i1, k1,rank,px)
+  implicit none 
+  include "mpif.h"
+  character(*),                  intent(IN) :: filename
+  real(8), dimension(0:i1,0:k1), intent(OUT) :: var1,var2,var3
+  integer,                       intent(IN) :: i1,k1,rank,px
+  integer nvar
+  integer(kind=MPI_OFFSET_KIND) disp 
+  character(len=61), dimension(:), allocatable :: lines, lines2
+  character(len=60) test 
+  nvar = 3
+  index=1
+
+  !first core write from 0 to k1-1
+  if (myrank .eq. 0) then
+    k_min = 0
+    k_max = k1-1
+    allocate(lines(1:(i1+1)*k1+1)) !+1 for header
+    disp = 0
+    size = ((i1+1)*(k1)+1)*(nvar*20+1)
+  !last core write from 1 to k1
+  else if (myrank .eq. px-1) then
+    k_min = 1
+    k_max = k1
+    allocate(lines(1:(i1+1)*k1))
+    size =           (i1+1)*(k1)*(nvar*20+1)
+    disp = ((i1+1)*(k1)+1)*(nvar*20+1) + (myrank-1)*(i1+1)*(k1-1)*(nvar*20+1)
+  !other core write from 1 to k1-1
+  else
+    k_min = 1
+    k_max = k1-1
+    allocate(lines(1:(i1+1)*(k1-1)))
+    size =           (i1+1)*(k1-1)*(nvar*20+1)
+    disp = ((i1+1)*(k1)+1)*(nvar*20+1) + (myrank-1)*(i1+1)*(k1-1)*(nvar*20+1)
+  endif
+  !do i = 0,i1
+  !  do j = k_min,k_max
+  !    write(test,'(3(E20.12))') var1(i,j), var2(i,j), var3(i,j)
+  !    write(line, '(A)') test // NEW_LINE("A")
+  !    lines(index) = line
+  !    index=index+1
+  !  enddo
+  !enddo
+
+  call MPI_FILE_OPEN(MPI_COMM_WORLD, filename,MPI_MODE_RDONLY,MPI_INFO_NULL, fh, ierr) 
+  call MPI_FILE_SET_VIEW(fh, disp, MPI_CHAR, MPI_CHAR, 'native', MPI_INFO_NULL, ierr) 
+  call MPI_FILE_READ(fh, lines, size, MPI_CHAR,MPI_STATUS_IGNORE, ierr) 
+  call MPI_FILE_CLOSE(fh, ierr)
+  if (rank .eq. 0) index=2
+      
+  do i = 0,i1
+    do j = k_min,k_max
+      read(lines(index)(1:20),*) var1(i,j)
+      read(lines(index)(21:40),*) var2(i,j)
+      read(lines(index)(41:60),*) var3(i,j)
+
+      write(*,*) var1(i,j),var2(i,j), var3(i,j), rank
+      index=index+1
+    enddo
+  enddo
+end subroutine read_mpiio_formatted
 
 subroutine write_mpiio_formatted(filename, var1, var2, var3, i1, k1,rank,px)
   implicit none 
